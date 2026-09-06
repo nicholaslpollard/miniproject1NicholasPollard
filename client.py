@@ -101,41 +101,44 @@ if __name__ == "__main__":
 
     client = PracticeHubClient(BASE, TOKEN)
 
-    # 1. LIST
-    everyone = client.list_posts()
-    print(f"posts on the hub: {len(everyone)}")
+    try:
+        # 1. LIST
+        everyone = client.list_posts()
+        print(f"posts on the hub: {len(everyone)}")
 
-    # 2. CREATE
-    new_post = client.create_post(
-        "Mini Project 1 CRUD Demo",
-        body="This post was created to demonstrate the create step.",
-        tags=["demo", "mini-project-1"]
-    )
-    post_id = new_post["id"]
-    print(f"created post {post_id}: {new_post['title']} tags={new_post.get('tags')}")
+        # 2. CREATE
+        new_post = client.create_post(
+            "Mini Project 1 CRUD Demo",
+            body="This post was created to demonstrate the create step.",
+            tags=["demo", "mini-project-1"]
+        )
+        post_id = new_post["id"]
+        print(f"created post {post_id}: {new_post['title']} tags={new_post.get('tags')}")
 
-    # 3. READ (the post we just created)
-    fetched = client.get_post(post_id)
-    print(f"fetched post {post_id}: {fetched['title']} body={fetched['body']!r}")
+        # 3. READ (the post we just created)
+        fetched = client.get_post(post_id)
+        print(f"fetched post {post_id}: {fetched['title']} body={fetched['body']!r}")
 
-    # 4. UPDATE
-    updated = client.update_post(
-        post_id,
-        title="Mini Project 1 CRUD Demo (Updated)",
-        body="This post was updated to demonstrate the update step.",
-        tags=["demo", "mini-project-1", "updated"]
-    )
-    print(f"updated post {post_id}: {updated['title']} tags={updated.get('tags')}")
+        # 4. UPDATE
+        updated = client.update_post(
+            post_id,
+            title="Mini Project 1 CRUD Demo (Updated)",
+            body="This post was updated to demonstrate the update step.",
+            tags=["demo", "mini-project-1", "updated"]
+        )
+        print(f"updated post {post_id}: {updated['title']} tags={updated.get('tags')}")
 
-    # 5. READ again to confirm the update stuck
-    reread = client.get_post(post_id)
-    print(
-        f"re-fetched post {post_id}: title={reread['title']!r} "
-        f"body={reread['body']!r} tags={reread.get('tags')}"
-    )
+        # 5. READ again to confirm the update stuck
+        reread = client.get_post(post_id)
+        print(
+            f"re-fetched post {post_id}: title={reread['title']!r} "
+            f"body={reread['body']!r} tags={reread.get('tags')}"
+        )
 
-    # 6. DELETE (clean up after ourselves)
-    deleted = client.delete_post(post_id)
+        # 6. DELETE (clean up after ourselves)
+        deleted = client.delete_post(post_id)
 
-    # 7. Confirm deletion
-    print(f"deleted post {post_id}: {deleted}")
+        # 7. Confirm deletion
+        print(f"deleted post {post_id}: {deleted}")
+    except PracticeHubError as e:
+        raise SystemExit(f"Practice Hub API error: {e}")
