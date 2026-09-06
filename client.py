@@ -36,7 +36,33 @@ class PracticeHubClient:
         resp.raise_for_status()
         return resp.json()
 
-    # TODO (Mini Project 1): get_post, update_post, delete_post
+    def get_post(self, post_id):
+        resp = requests.get(
+            f"{self.base}/api/v1/posts/{post_id}",
+            headers=self.headers
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+    def update_post(self, post_id, title=None, body=None, tags=None):
+        # PATCH only sends the fields that are actually changing.
+        data = {}
+        if title is not None:
+            data["title"] = title
+        if body is not None:
+            data["body"] = body
+        if tags is not None:
+            data["tags"] = tags
+
+        resp = requests.patch(
+            f"{self.base}/api/v1/posts/{post_id}",
+            headers=self.headers,
+            json=data
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+    # TODO (Mini Project 1): delete_post
 
 
 if __name__ == "__main__":
