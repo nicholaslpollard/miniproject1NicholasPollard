@@ -9,18 +9,56 @@ BASE = "https://practice.fhsucyber.com"
 TOKEN = os.environ.get("PRACTICE_API_TOKEN")
 
 
+class PracticeHubError(Exception):
+    """Raised for a Practice Hub API error we can give a clear message for."""
+
+
 class PracticeHubClient:
     def __init__(self, base_url, token):
         self.base = base_url.rstrip("/")
         self.headers = {"Authorization": f"Bearer {token}"}
 
+    def _request(self, method, path, **kwargs):
+        """Send one HTTP request and translate error responses into a
+        PracticeHubError with a message a student can understand, instead
+        of letting a raw requests exception/traceback bubble up."""
+        resp = requests.request(method, f"{self.base}{path}", headers=self.headers, **kwargs)
+
+        if resp.ok:
+            return resp
+
+        if resp.status_code == 401:
+            raise PracticeHubError(
+                "401 Unauthorized: authentication failed. Check that "
+                "PRACTICE_API_TOKEN is set to a valid token."
+            )
+        if resp.status_code == 403:
+            raise PracticeHubError(
+                "403 Forbidden: you can only modify or delete your own posts."
+            )
+        if resp.status_code == 404:
+            raise PracticeHubError(
+                "404 Not Found: the requested post was not found."
+            )
+        if resp.status_code == 422:
+            try:
+                detail = resp.json().get("detail", "no detail provided")
+            except ValueError:
+                detail = "no detail provided"
+            raise PracticeHubError(f"422 Unprocessable Entity: {detail}")
+
+        # Anything else: don't hide the status code, but don't let a raw
+        # requests traceback be the only thing the caller sees either.
+        raise PracticeHubError(
+            f"Unexpected HTTP {resp.status_code} error from Practice Hub: {resp.text}"
+        )
+
     def create_post(self, title, body="", tags=None):
-        resp = requests.post(
-            f"{self.base}/api/v1/posts",
-            headers=self.headers,
+        resp = self._request(
+            "POST",
+            "/api/v1/posts",
             json={"title": title, "body": body, "tags": tags or []}
         )
-        resp.raise_for_status()
         return resp.json()
 
     def list_posts(self, mine=False, tag=None):
@@ -28,20 +66,11 @@ class PracticeHubClient:
         if tag:
             params["tag"] = tag
 
-        resp = requests.get(
-            f"{self.base}/api/v1/posts",
-            headers=self.headers,
-            params=params
-        )
-        resp.raise_for_status()
+        resp = self._request("GET", "/api/v1/posts", params=params)
         return resp.json()
 
     def get_post(self, post_id):
-        resp = requests.get(
-            f"{self.base}/api/v1/posts/{post_id}",
-            headers=self.headers
-        )
-        resp.raise_for_status()
+        resp = self._request("GET", f"/api/v1/posts/{post_id}")
         return resp.json()
 
     def update_post(self, post_id, title=None, body=None, tags=None):
@@ -54,20 +83,11 @@ class PracticeHubClient:
         if tags is not None:
             data["tags"] = tags
 
-        resp = requests.patch(
-            f"{self.base}/api/v1/posts/{post_id}",
-            headers=self.headers,
-            json=data
-        )
-        resp.raise_for_status()
+        resp = self._request("PATCH", f"/api/v1/posts/{post_id}", json=data)
         return resp.json()
 
     def delete_post(self, post_id):
-        resp = requests.delete(
-            f"{self.base}/api/v1/posts/{post_id}",
-            headers=self.headers
-        )
-        resp.raise_for_status()
+        self._request("DELETE", f"/api/v1/posts/{post_id}")
         # A successful delete returns 204 No Content, so there is no
         # JSON body to parse. Just report success.
         return True
